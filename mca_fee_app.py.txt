@@ -1,0 +1,32 @@
+import streamlit as st
+import pandas as pd
+
+# Load Excel file
+df = pd.read_excel("MCA FEES.xlsx", sheet_name="Sheet1", skiprows=2)
+
+# Clean columns
+df.columns = ["STATE", "Capital_1L", "Capital_15L", "Capital_50L"]
+df = df.dropna(subset=["STATE"])
+
+# App title
+st.title("🏢 MCA Company Incorporation Fee Calculator (India)")
+
+# State selection
+state = st.selectbox("Select State", df["STATE"].unique())
+
+# Capital input
+capital = st.number_input("Enter Authorised Capital (₹)", min_value=100000, step=50000)
+
+# Determine slab
+if capital <= 100000:
+    slab = "Capital_1L"
+elif capital <= 1500000:
+    slab = "Capital_15L"
+else:
+    slab = "Capital_50L"
+
+# Fetch fee
+fee = df.loc[df["STATE"] == state, slab].values[0]
+
+# Show result
+st.success(f"👉 MCA Fee for {state} with Authorised Capital ₹{capital:,} is: ₹{fee}")
