@@ -1,45 +1,40 @@
 import streamlit as st
 import pandas as pd
 
-# Title
-st.title("📊 MCA Fee Calculator (India)")
-
-# Load Excel safely
+# Load Excel file
 @st.cache_data
 def load_data():
-    try:
-        df = pd.read_excel("MCA FEES.xlsx", sheet_name="Sheet1", engine="openpyxl")
-        return df
-    except Exception as e:
-        st.error(f"Error loading Excel file: {e}")
-        return pd.DataFrame()
+    return pd.read_excel("MCA FEES.xlsx")
 
 df = load_data()
 
-if df.empty:
-    st.warning("No data available. Please check the Excel file format.")
-else:
-    st.success("✅ Data loaded successfully!")
+st.title("📊 MCA Fee Calculator - Company Incorporation")
 
-    # Show preview
-    if st.checkbox("Show fee master sheet preview"):
-        st.dataframe(df)
+# Sidebar for state selection
+states = df["STATE NAME"].dropna().unique().tolist()
+selected_state = st.sidebar.selectbox("Select State", states)
 
-    # Dropdowns for search
-    states = df["State"].dropna().unique().tolist()
-    company_types = df["Company Type"].dropna().unique().tolist()
+# Filter data for selected state
+state_data = df[df["STATE NAME"] == selected_state]
 
-    selected_state = st.selectbox("Select State", states)
-    selected_company = st.selectbox("Select Company Type", company_types)
+st.subheader(f"Fee Structure for {selected_state}")
 
-    # Filter result
-    result = df[
-        (df["State"] == selected_state) &
-        (df["Company Type"] == selected_company)
-    ]
+# Show fee table
+st.dataframe(state_data)
 
-    if not result.empty:
-        st.subheader("📌 Applicable Fees")
-        st.table(result)
-    else:
-        st.warning("No matching record found. Try another selection.")
+# Optional: Search authorised capital
+cap_input = st.text_input("Enter Authorised Capital to check fee (e.g. 10,00,000):")
+
+if cap_input:
+    try:
+        cap_value = int(cap_input.replace(",", ""))
+        # Find closest match in Authorised Capital column
+        state_data["Difference"] = abs(state_data["AUTHORISED CAPITAL"] - cap_value)
+        closest_row = state_data.loc[state_data["Difference"].idxmin()]
+        
+        st.success(
+            f"For Authorised Capital ₹{cap_value:,}, "
+            f"the fee is: ₹{closest_row['FEES']:,}"
+        )
+    except:
+        st.error("⚠️ Please enter a valid number for Authorised Capital.")
